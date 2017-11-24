@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
-#include "../include/math.h"
+#include "math.h"
 
 //VECTOR 2
 struct doge_vec2 sum_vec2(struct doge_vec2 a,struct doge_vec2 b)
