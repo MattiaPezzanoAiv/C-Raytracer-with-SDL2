@@ -93,4 +93,17 @@ int normalize_vec3(struct doge_vec3* a)
     a->z = a->z / a_len;
     return 0;
 }
+struct doge_vec3 multiply_vec3(struct doge_vec3 v,float n)
+{
+    struct doge_vec3 new_v;
+    new_v.x = new_v.x * n;
+    new_v.y = new_v.y * n;
+    new_v.z = new_v.z * n;
+    return new_v;
+}
+float dot_vec3(struct doge_vec3 v1, struct doge_vec3 v2)
+{
+    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
 

@@ -40,3 +40,6 @@ float slow_len_vec3(struct  doge_vec3);
 float fast_len_vec3(struct doge_vec3);
 float distance_vec3(struct doge_vec3, struct doge_vec3);
 int normalize_vec3(struct doge_vec3*);
+struct doge_vec3 multiply_vec3(struct doge_vec3,float);
+float dot_vec3(struct doge_vec3 , struct doge_vec3 );
+

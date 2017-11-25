@@ -1,5 +1,7 @@
+// #pragma once
 #include "math.h"
 #include <SDL2/SDL.h>
+#include "doge_quat.h"
 
 typedef struct triangle
 {
@@ -9,12 +11,18 @@ typedef struct triangle
 
     struct triangle* next;
     struct triangle* prev;
+
+    void* owner;
 }triangle_t;
 
 typedef struct mesh
 {
     triangle_t* head;
     triangle_t* tail;
+
+    struct doge_vec3 scale;
+    struct doge_vec3 position;
+    doge_quat_t rotation;
 }mesh_t;
 int mesh_triangles_count(mesh_t);
 typedef struct camera
@@ -53,4 +61,6 @@ list_item_t* create_list_item(void*); //take data
 void list_append(list_t*, void*);
 int list_len(list_t);
 
-//in main algorithm create list of float and after the wile cycle create a vector and create triangle and add to mesh
+void manage_scale(mesh_t*, SDL_Event*);
+void manage_position(mesh_t*,SDL_Event*);
+void rotate_around(struct doge_vec3 , mesh_t*,float ,float);

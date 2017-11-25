@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 
 int main(int args_count, char* args[])
@@ -10,8 +11,8 @@ int main(int args_count, char* args[])
 
     SDL_Window* my_window;
     SDL_Renderer* renderer;
-    int width = 500;
-    int height = 500;
+    int width = 1200;
+    int height = 1200;
 
     SDL_Init(SDL_INIT_VIDEO);
     
@@ -20,7 +21,7 @@ int main(int args_count, char* args[])
 
     //add mesh 
     camera_t camera;
-    camera.position = create_vec3(0,0,-1);
+    camera.position = create_vec3(0,0,-25);
     camera.fov_y = 60;
 
     struct doge_vec3 a = create_vec3(100,100,0);
@@ -29,20 +30,56 @@ int main(int args_count, char* args[])
     
     // triangle_t t = create_triangle(a,b,c);
     mesh_t* mesh = parse_obj("suzanne.obj");
-    triangle_t t = *mesh->head;
-    fprintf(stdout,"%f/%f/%f %f/%f/%f %f/%f/%f\n",t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z);
-    return  0;
-    //game loop and render mesh (start with a triangle)
-    while(1)
+    (*mesh).scale = create_vec3(1,1,1);
+    (*mesh).position = create_vec3(0,0,0);
+    (*mesh).rotation = doge_quat_create(0.0,0,0,1.0);
+    // struct doge_vec3 v = create_vec3(100,0,0);
+    // normalize_vec3(&v);
+    // (*mesh).rotation = doge_quat_from_axis_angle(0,1,0,90);
+    
+    
+    
+    mesh_t* fuck = parse_obj("fuck.obj");
+    (*fuck).scale = create_vec3(0.2,0.2,0.2);
+    (*fuck).position = create_vec3(0,0,0);
+    (*fuck).rotation = doge_quat_create(0,0,0,1.0);
+    
+    
+
+    SDL_Event game_event;
+    int quit = 0;
+    while(!quit)
     {
+        static float rotation_degrees = 0;
+        rotation_degrees+= 0.05;
+        if(rotation_degrees > 360)
+            rotation_degrees = 0;
+        
+        //Handle events on queue
+            while( SDL_PollEvent( &game_event ) != 0 )
+            {
+                //User requests quit
+                if( game_event.type == SDL_QUIT )
+                {
+                    quit = 1;
+                }
+                manage_position(mesh,&game_event);
+            }
         fprintf(stdout,"loop  \n");
         SDL_SetRenderDrawColor(renderer,0,0,0,255);
         fprintf(stdout,"render color set  \n");
         
         SDL_RenderClear(renderer);
         fprintf(stdout,"clear screen  \n");
-        
+
+        // mesh->position = sum_vec3(mesh->position, create_vec3(0.01,0,0));
+        rotate_around(mesh->position,fuck,10,rotation_degrees);
+
         mesh_draw(*mesh,camera,renderer,width, height);
+        mesh_draw(*fuck,camera,renderer,width,height);
+
+
+
         // triangle_draw(t,camera,renderer,width,height);
         SDL_RenderPresent(renderer);
         // SDL_Delay(5000);
@@ -64,10 +101,25 @@ void triangle_draw(triangle_t t,camera_t camera, SDL_Renderer* renderer,float wi
     fprintf(stdout,"called traingle draw trainagle value is %f/%f/%f %f/%f/%f %f/%f/%f\n",t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z);
     float fov_y = camera.fov_y * (float) M_PI/180; //p grego / 180
 
-    struct doge_vec3 ac =sub_vec3(t.a , camera.position);
-    struct doge_vec3 bc = sub_vec3(t.b, camera.position);
-    struct doge_vec3 cc = sub_vec3(t.c, camera.position);
-    
+    mesh_t owner = *(mesh_t*)t.owner;
+
+    struct doge_vec3 ac = (scale_vec3(t.a,owner.scale));
+    ac = doge_quat_rotated_vec(ac,owner.rotation);
+    ac = sub_vec3(sum_vec3(ac,owner.position),camera.position);
+    struct doge_vec3 bc = (scale_vec3(t.b,owner.scale));
+    bc = doge_quat_rotated_vec(bc,owner.rotation);
+    bc = sub_vec3(sum_vec3(bc,owner.position),camera.position);
+    struct doge_vec3 cc = (scale_vec3(t.c,owner.scale));
+    cc = doge_quat_rotated_vec(cc,owner.rotation);
+    cc = sub_vec3(sum_vec3(cc,owner.position),camera.position);
+
+    // struct doge_vec3 ac = sub_vec3(scale_vec3(sum_vec3(t.a,owner.position),owner.scale),camera.position);
+    // ac = doge_quat_rotated_vec(ac,owner.rotation);
+    // struct doge_vec3 bc = sub_vec3(scale_vec3(sum_vec3(t.b,owner.position),owner.scale),camera.position);
+    // bc = doge_quat_rotated_vec(ac,owner.rotation);
+    // struct doge_vec3 cc = sub_vec3(scale_vec3(sum_vec3(t.c,owner.position),owner.scale),camera.position);
+    // cc = doge_quat_rotated_vec(ac,owner.rotation);
+        
     // // point1
     float yp1 = ac.y / (ac.z * (float)tan(fov_y / 2));
     float xp1 = ac.x / (ac.z * (float)tan(fov_y / 2));
@@ -90,9 +142,9 @@ void triangle_draw(triangle_t t,camera_t camera, SDL_Renderer* renderer,float wi
 
     //draw 3 lines
     SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderDrawLine(renderer,xp1,yp1,xp2,yp2);
-    SDL_RenderDrawLine(renderer,xp1,yp1,xp3,yp3);
-    SDL_RenderDrawLine(renderer,xp3,yp3,xp2,yp2);
+    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp2,nyp2);
+    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp3,nyp3);
+    SDL_RenderDrawLine(renderer,nxp3,nyp3,nxp2,nyp2);
     
     
 }
@@ -140,6 +192,7 @@ void mesh_add_triangle(mesh_t* mesh,triangle_t* t)
         t->prev = mesh->tail;
         mesh->tail = t;
     }
+    t->owner = mesh;
     // fprintf(stdout,"added triangle with values %f/%f/%f %f/%f/%f %f/%f/%f\n",t->a.x,t->a.y,t->a.z,t->b.x,t->b.y,t->b.z,t->c.x,t->c.y,t->c.z);
 }
 
@@ -210,11 +263,33 @@ int mesh_triangles_count(mesh_t mesh)
     }
     return counter;
 }
-
+void manage_position(mesh_t* mesh,SDL_Event* event)
+{
+     if(event->type ==  SDL_KEYDOWN)
+     {
+         
+        switch (event->key.keysym.sym)
+        {
+            case SDLK_LEFT:  mesh->position = sum_vec3(mesh->position,create_vec3(-0.05,0,0)); break;
+            case SDLK_RIGHT: mesh->position = sum_vec3(mesh->position,create_vec3(0.05,0,0)); break;
+            case SDLK_UP:    mesh->position = sum_vec3(mesh->position,create_vec3(0,0.05,0)); break;
+            case SDLK_DOWN:  mesh->position = sum_vec3(mesh->position,create_vec3(0,-0.05,0)); break;
+        }
+         
+        
+     }
+}
+void rotate_around(struct doge_vec3 point, mesh_t* mesh, float distance, float angle)
+{
+    float new_x = cos(angle);
+    float new_y = sin(angle);
+    mesh->position = multiply_vec3(sum_vec3(point, create_vec3(new_x,new_y,mesh->position.z)),distance);
+}
 mesh_t* parse_obj(char* obj_path)
 {
     //to return
     mesh_t* my_mesh = malloc(sizeof(mesh_t));
+    memset(my_mesh,0,sizeof(mesh_t));
 
 
     FILE* file;
@@ -286,7 +361,7 @@ mesh_t* parse_obj(char* obj_path)
             {
                 struct doge_vec3* v = malloc(sizeof(struct doge_vec3)); 
                 if(!v) return NULL;
-                *v = create_vec3(*((float*)float_for_vector->head->item),*((float*)float_for_vector->head->next->item),*((float*) float_for_vector->head->next->next->item));     
+                *v = create_vec3(*((float*)float_for_vector->head->item),*((float*)float_for_vector->head->next->item),*((float*) float_for_vector->head->next->next->item)*-1);     
                 list_append(all_points_of_mesh,v);
                 fprintf(stdout," vector  %f %f %f  added to mesh %d\n",v->x,v->y,v->z, ++added);
             }
