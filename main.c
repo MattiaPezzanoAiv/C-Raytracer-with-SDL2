@@ -4,6 +4,10 @@
 #include <string.h>
 #include <math.h>
 
+#define MIN(x,y) (x < y ? x : y)
+#define MAX(x,y) (x > y ? x : y)
+
+
 
 int main(int args_count, char* args[])
 {
@@ -21,14 +25,15 @@ int main(int args_count, char* args[])
 
     //add mesh 
     camera_t camera;
-    camera.position = create_vec3(0,0,-25);
+    camera.position = create_vec3(0,0,-10);
     camera.fov_y = 60;
 
     struct doge_vec3 a = create_vec3(100,100,0);
     struct doge_vec3 b = create_vec3(0,200,0);
     struct doge_vec3 c = create_vec3(200,200,0);
     
-    // triangle_t t = create_triangle(a,b,c);
+    // triangle_t* t = create_triangle(a,b,c);
+
     mesh_t* mesh = parse_obj("suzanne.obj");
     (*mesh).scale = create_vec3(1,1,1);
     (*mesh).position = create_vec3(0,0,0);
@@ -72,15 +77,14 @@ int main(int args_count, char* args[])
         SDL_RenderClear(renderer);
         fprintf(stdout,"clear screen  \n");
 
-        // mesh->position = sum_vec3(mesh->position, create_vec3(0.01,0,0));
-        rotate_around(mesh->position,fuck,10,rotation_degrees);
+        // rotate_around(mesh->position,fuck,10,rotation_degrees);
 
-        mesh_draw(*mesh,camera,renderer,width, height);
+        // mesh_draw(*mesh,camera,renderer,width, height);
         mesh_draw(*fuck,camera,renderer,width,height);
 
 
+        // triangle_draw_no_owner(*t,camera,renderer,width,height);
 
-        // triangle_draw(t,camera,renderer,width,height);
         SDL_RenderPresent(renderer);
         // SDL_Delay(5000);
     }
@@ -94,6 +98,54 @@ int main(int args_count, char* args[])
     //sdl_renderpresent
 
     return 0;
+}
+
+void triangle_draw_no_owner(triangle_t t,camera_t camera, SDL_Renderer* renderer,float window_w, float window_h)
+{
+    fprintf(stdout,"called traingle draw trainagle value is %f/%f/%f %f/%f/%f %f/%f/%f\n",t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z);
+    float fov_y = camera.fov_y * (float) M_PI/180; //p grego / 180
+
+    // mesh_t owner = *(mesh_t*)t.owner;
+
+    struct doge_vec3 ac = sub_vec3(t.a, camera.position);
+    struct doge_vec3 bc = sub_vec3(t.b, camera.position);
+    struct doge_vec3 cc = sub_vec3(t.c, camera.position);
+    
+
+    // struct doge_vec3 ac = sub_vec3(scale_vec3(sum_vec3(t.a,owner.position),owner.scale),camera.position);
+    // ac = doge_quat_rotated_vec(ac,owner.rotation);
+    // struct doge_vec3 bc = sub_vec3(scale_vec3(sum_vec3(t.b,owner.position),owner.scale),camera.position);
+    // bc = doge_quat_rotated_vec(ac,owner.rotation);
+    // struct doge_vec3 cc = sub_vec3(scale_vec3(sum_vec3(t.c,owner.position),owner.scale),camera.position);
+    // cc = doge_quat_rotated_vec(ac,owner.rotation);
+        
+    // // point1
+    float yp1 = ac.y / (ac.z * (float)tan(fov_y / 2));
+    float xp1 = ac.x / (ac.z * (float)tan(fov_y / 2));
+
+    // from -1/1 to 0/window.width (NDC)
+    int nxp1 = (int)(xp1 * window_w/2 + window_h/2);
+    int nyp1 = (int)(-yp1 * window_w/2 + window_h/2);
+
+    float yp2 = bc.y / (bc.z * (float)tan(fov_y / 2));
+    float xp2 = bc.x / (bc.z * (float)tan(fov_y / 2));
+
+    int nxp2 = (int)(xp2 * window_w/2 + window_h/2);
+    int nyp2 = (int)(-yp2 * window_w/2 + window_h/2);
+
+    float yp3 = cc.y / (cc.z * (float)tan(fov_y / 2));
+    float xp3 = cc.x / (cc.z * (float)tan(fov_y / 2));
+
+    int nxp3 = (int)(xp3 * window_w/2 + window_h/2);
+    int nyp3 = (int)(-yp3 * window_w/2 + window_h/2);
+
+    //draw 3 lines
+    SDL_SetRenderDrawColor(renderer,0,255,0,255);
+    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp2,nyp2);
+    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp3,nyp3);
+    SDL_RenderDrawLine(renderer,nxp3,nyp3,nxp2,nyp2);
+
+    // RasterizationBoundingBox(create_vec3(nxp1,nyp1,0), create_vec3(nxp2,nyp2,0),create_vec3(nxp3,nyp3,0), renderer);
 }
 
 void triangle_draw(triangle_t t,camera_t camera, SDL_Renderer* renderer,float window_w, float window_h)
@@ -145,9 +197,10 @@ void triangle_draw(triangle_t t,camera_t camera, SDL_Renderer* renderer,float wi
     SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp2,nyp2);
     SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp3,nyp3);
     SDL_RenderDrawLine(renderer,nxp3,nyp3,nxp2,nyp2);
-    
-    
+
+    RasterizationBoundingBox(create_vec3(nxp1,nyp1,0), create_vec3(nxp2,nyp2,0),create_vec3(nxp3,nyp3,0), renderer);
 }
+
 void mesh_draw(mesh_t mesh,camera_t camera,SDL_Renderer* rend,float window_w,float window_h)
 {
     fprintf(stdout,"starting drawing mesh  \n");
@@ -336,7 +389,6 @@ mesh_t* parse_obj(char* obj_path)
                 {
                     if(is_v)
                     {
-                        
                         float* value = malloc(sizeof(float)); 
                         *value = (float)atof(item); //transform string into floating point number
                         // fprintf(stdout,"added point %f when item is %s\n",*value, item);
@@ -393,3 +445,45 @@ mesh_t* parse_obj(char* obj_path)
         fclose(file);
     return my_mesh;
 }
+
+        float Sign(struct doge_vec3 p1, struct doge_vec3 p2,struct doge_vec3 p3)
+        {
+            return (p1.x - p3.x)*(p2.y - p3.y) - (p2.x - p3.x ) * (p1.y - p3.y);
+        }
+
+        
+        int PointInTriangle(struct doge_vec3 pt, struct doge_vec3 v1, struct doge_vec3 v2, struct doge_vec3 v3)
+        {
+            float b1, b2, b3;
+
+            b1 = Sign(pt, v1, v2) < 0;
+            b2 = Sign(pt, v2, v3) < 0;
+            b3 = Sign(pt, v3, v1) < 0;
+
+            if((b1 == b2) && (b2 == b3))
+                return 0;
+
+            return -1;
+        }
+         void RasterizationBoundingBox(struct doge_vec3 v1, struct doge_vec3 v2, struct doge_vec3 v3, SDL_Renderer* renderer)
+        {
+            // 1 triangle 20/25 fps (90 fps) no artifacts
+
+            int maxX = (int)MAX(v1.x, MAX(v2.x, v3.x));
+            int minX = (int)MIN(v1.x, MIN(v2.x, v3.x));
+            int maxY = (int)MAX(v1.y, MAX(v2.y, v3.y));
+            int minY = (int)MIN(v1.y, MIN(v2.y, v3.y));
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    struct doge_vec3 point =  create_vec3(x,y,0);
+
+                    if (!PointInTriangle(point, v1, v2, v3))
+                    {
+                        SDL_RenderDrawPoint(renderer,(int)point.x, (int)point.y);
+                    }
+                }
+            }
+        }

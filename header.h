@@ -31,6 +31,8 @@ typedef struct camera
     float fov_y;
 }camera_t;
 void triangle_draw(triangle_t,camera_t, SDL_Renderer*,float ,float );
+void triangle_draw_no_owner(triangle_t,camera_t, SDL_Renderer*,float ,float );
+
 void mesh_draw(mesh_t,camera_t,SDL_Renderer*,float,float);
 
 triangle_t* create_triangle(struct doge_vec3 ,struct doge_vec3 ,struct doge_vec3 );
@@ -64,3 +66,7 @@ int list_len(list_t);
 void manage_scale(mesh_t*, SDL_Event*);
 void manage_position(mesh_t*,SDL_Event*);
 void rotate_around(struct doge_vec3 , mesh_t*,float ,float);
+
+float sign(struct doge_vec3,struct doge_vec3,struct doge_vec3);
+void RasterizationBoundingBox(struct doge_vec3,struct doge_vec3,struct doge_vec3, SDL_Renderer*);
+int PointInTriangle(struct doge_vec3,struct doge_vec3,struct doge_vec3,struct doge_vec3);
