@@ -26,7 +26,7 @@ int main(int args_count, char* args[])
     //add mesh 
     camera_t camera;
     camera.position = create_vec3(0,0,-10);
-    camera.fov_y = 60;
+    camera.fov_y = 60 * (float) M_PI/180; //p grego / 180
 
     struct doge_vec3 a = create_vec3(100,100,0);
     struct doge_vec3 b = create_vec3(0,200,0);
@@ -78,9 +78,9 @@ int main(int args_count, char* args[])
         fprintf(stdout,"clear screen  \n");
 
         // rotate_around(mesh->position,fuck,10,rotation_degrees);
-
-        // mesh_draw(*mesh,camera,renderer,width, height);
-        mesh_draw(*fuck,camera,renderer,width,height);
+        
+        mesh_draw(*mesh,camera,renderer,width, height);
+        // mesh_draw(*fuck,camera,renderer,width,height);
 
 
         // triangle_draw_no_owner(*t,camera,renderer,width,height);
@@ -100,105 +100,213 @@ int main(int args_count, char* args[])
     return 0;
 }
 
-void triangle_draw_no_owner(triangle_t t,camera_t camera, SDL_Renderer* renderer,float window_w, float window_h)
+void vertex_project2D(camera_t camera, vertex_t* v, struct doge_vec3 position, struct doge_vec3 scale,float screen_width, float screen_height)
 {
-    fprintf(stdout,"called traingle draw trainagle value is %f/%f/%f %f/%f/%f %f/%f/%f\n",t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z);
-    float fov_y = camera.fov_y * (float) M_PI/180; //p grego / 180
+    float half_w = screen_width/2;
+    float half_h = screen_height/2;
 
-    // mesh_t owner = *(mesh_t*)t.owner;
+    v->world_position = (sum_vec3(scale_vec3(v->pos,scale),v->pos));
+    v->world_normal = normalized_vec3(v->normal);  //must be multiplied with rotation
+    v->world_view_position = sub_vec3(v->world_position, camera.position);
 
-    struct doge_vec3 ac = sub_vec3(t.a, camera.position);
-    struct doge_vec3 bc = sub_vec3(t.b, camera.position);
-    struct doge_vec3 cc = sub_vec3(t.c, camera.position);
+
+            // point in NDC coordinates (-1 -- 1)
+            float yp = v->world_view_position.y / (v->world_view_position.z * (float)tan(camera.fov_y / 2));
+            float xp = v->world_view_position.x / (v->world_view_position.z * (float)tan(camera.fov_y / 2));
+
+            // to pixel coordinates
+            int nxp = (int)(xp * half_w + half_w);
+            int nyp = (int)(-yp * half_h + half_h);
+
+            v->projected_position = create_vec2(nxp,nyp);
+        }
+
+
+void triangle_draw(triangle_t t,camera_t camera,vec3_t pos, vec3_t scale, SDL_Renderer* renderer,float window_w, float window_h)
+{
+    vertex_project2D(camera,&t.a,pos,scale,window_w,window_h);
+    vertex_project2D(camera,&t.b,pos,scale,window_w,window_h);
+    vertex_project2D(camera,&t.c,pos,scale,window_w,window_h);
+
+            // we need to order the three vertices from highest (on y) to lowest (on y)
+            vertex_t p1 = t.a;
+            vertex_t p2 = t.b;
+            vertex_t p3 = t.c;
+
+            if (p2.projected_position.y < p1.projected_position.y)
+            {
+                vertex_t tmp = p1;
+                p1 = p2;
+                p2 = tmp;
+            }
+
+            if (p3.projected_position.y < p2.projected_position.y)
+            {
+                vertex_t tmp = p2;
+                p2 = p3;
+                p3 = tmp;
+            }
+
+            if (p2.projected_position.y < p1.projected_position.y)
+            {
+                vertex_t tmp = p1;
+                p1 = p2;
+                p2 = tmp;
+            }
+
+
+            // compute the slope of P1P2 and P1P3 to know if P2 is on the left or on the right
+            float iSlopeP1P2 = (p2.projected_position.x - p1.projected_position.x) / (p2.projected_position.y - p1.projected_position.y);
+            float iSlopeP1P3 = (p3.projected_position.x - p1.projected_position.x) / (p3.projected_position.y - p1.projected_position.y);
+
+
+            // P2 on the left
+            if (iSlopeP1P2 < iSlopeP1P3)
+            {
+                // iterate from P1.Y to P3.Y
+                for (int y = (int)p1.projected_position.y; y <= (int)p3.projected_position.y; y++)
+                {
+                    if (y < p2.projected_position.y)
+                    {
+                        // phase 1
+                        triangle_scanline(y, p1, p2, p1, p3,renderer);
+                    }
+                    else
+                    {
+                        // phase 2
+                        triangle_scanline(y, p2, p3, p1, p3,renderer);
+                    }
+                }
+            }
+            else
+            {
+                // P2 on the right
+                // iterate from P1.Y to P3.Y
+                for (int y = (int)p1.projected_position.y; y <= (int)p3.projected_position.y; y++)
+                {
+                    if (y < p2.projected_position.y)
+                    {
+                        // phase 1
+                        triangle_scanline(y, p1, p3, p1, p2,renderer);
+                    }
+                    else
+                    {
+                        // phase 2
+                        triangle_scanline(y, p1, p3, p2, p3,renderer);
+                    }
+                }
+            }
+
+            /*DrawLineBresenham((int)a.ProjectedPosition.X, (int)a.ProjectedPosition.Y, (int)b.ProjectedPosition.X, (int)b.ProjectedPosition.Y);
+            DrawLineBresenham((int)b.ProjectedPosition.X, (int)b.ProjectedPosition.Y, (int)c.ProjectedPosition.X, (int)c.ProjectedPosition.Y);
+            DrawLineBresenham((int)a.ProjectedPosition.X, (int)a.ProjectedPosition.Y, (int)c.ProjectedPosition.X, (int)c.ProjectedPosition.Y);*/
     
-
-    // struct doge_vec3 ac = sub_vec3(scale_vec3(sum_vec3(t.a,owner.position),owner.scale),camera.position);
-    // ac = doge_quat_rotated_vec(ac,owner.rotation);
-    // struct doge_vec3 bc = sub_vec3(scale_vec3(sum_vec3(t.b,owner.position),owner.scale),camera.position);
-    // bc = doge_quat_rotated_vec(ac,owner.rotation);
-    // struct doge_vec3 cc = sub_vec3(scale_vec3(sum_vec3(t.c,owner.position),owner.scale),camera.position);
-    // cc = doge_quat_rotated_vec(ac,owner.rotation);
-        
-    // // point1
-    float yp1 = ac.y / (ac.z * (float)tan(fov_y / 2));
-    float xp1 = ac.x / (ac.z * (float)tan(fov_y / 2));
-
-    // from -1/1 to 0/window.width (NDC)
-    int nxp1 = (int)(xp1 * window_w/2 + window_h/2);
-    int nyp1 = (int)(-yp1 * window_w/2 + window_h/2);
-
-    float yp2 = bc.y / (bc.z * (float)tan(fov_y / 2));
-    float xp2 = bc.x / (bc.z * (float)tan(fov_y / 2));
-
-    int nxp2 = (int)(xp2 * window_w/2 + window_h/2);
-    int nyp2 = (int)(-yp2 * window_w/2 + window_h/2);
-
-    float yp3 = cc.y / (cc.z * (float)tan(fov_y / 2));
-    float xp3 = cc.x / (cc.z * (float)tan(fov_y / 2));
-
-    int nxp3 = (int)(xp3 * window_w/2 + window_h/2);
-    int nyp3 = (int)(-yp3 * window_w/2 + window_h/2);
-
-    //draw 3 lines
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp2,nyp2);
-    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp3,nyp3);
-    SDL_RenderDrawLine(renderer,nxp3,nyp3,nxp2,nyp2);
-
-    // RasterizationBoundingBox(create_vec3(nxp1,nyp1,0), create_vec3(nxp2,nyp2,0),create_vec3(nxp3,nyp3,0), renderer);
 }
-
-void triangle_draw(triangle_t t,camera_t camera, SDL_Renderer* renderer,float window_w, float window_h)
+void triangle_scanline(int y, vertex_t left_a,vertex_t left_b,vertex_t right_a,vertex_t right_b,SDL_Renderer* renderer)
 {
-    fprintf(stdout,"called traingle draw trainagle value is %f/%f/%f %f/%f/%f %f/%f/%f\n",t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z);
-    float fov_y = camera.fov_y * (float) M_PI/180; //p grego / 180
+    // get the gradient of the y (gradient == 0 if y == leftA.y, gradient == 1 if y == leftB.y)
 
-    mesh_t owner = *(mesh_t*)t.owner;
+            float leftGradient = (y - left_a.projected_position.y) / (left_b.projected_position.y - left_a.projected_position.y);
+            float rightGradient = (y - right_a.projected_position.y) / (right_b.projected_position.y - right_a.projected_position.y);
 
-    struct doge_vec3 ac = (scale_vec3(t.a,owner.scale));
-    ac = doge_quat_rotated_vec(ac,owner.rotation);
-    ac = sub_vec3(sum_vec3(ac,owner.position),camera.position);
-    struct doge_vec3 bc = (scale_vec3(t.b,owner.scale));
-    bc = doge_quat_rotated_vec(bc,owner.rotation);
-    bc = sub_vec3(sum_vec3(bc,owner.position),camera.position);
-    struct doge_vec3 cc = (scale_vec3(t.c,owner.scale));
-    cc = doge_quat_rotated_vec(cc,owner.rotation);
-    cc = sub_vec3(sum_vec3(cc,owner.position),camera.position);
+            // singularity 
+            if (left_a.projected_position.y == left_b.projected_position.y)
+                leftGradient = 1;
 
-    // struct doge_vec3 ac = sub_vec3(scale_vec3(sum_vec3(t.a,owner.position),owner.scale),camera.position);
-    // ac = doge_quat_rotated_vec(ac,owner.rotation);
-    // struct doge_vec3 bc = sub_vec3(scale_vec3(sum_vec3(t.b,owner.position),owner.scale),camera.position);
-    // bc = doge_quat_rotated_vec(ac,owner.rotation);
-    // struct doge_vec3 cc = sub_vec3(scale_vec3(sum_vec3(t.c,owner.position),owner.scale),camera.position);
-    // cc = doge_quat_rotated_vec(ac,owner.rotation);
-        
-    // // point1
-    float yp1 = ac.y / (ac.z * (float)tan(fov_y / 2));
-    float xp1 = ac.x / (ac.z * (float)tan(fov_y / 2));
+            if (right_a.projected_position.y == right_b.projected_position.y)
+                rightGradient = 1;
 
-    // from -1/1 to 0/window.width (NDC)
-    int nxp1 = (int)(xp1 * window_w/2 + window_h/2);
-    int nyp1 = (int)(-yp1 * window_w/2 + window_h/2);
+            // compute left pixel and right pixel using gradient
+            float leftX = interpolate_float(left_a.projected_position.x, left_b.projected_position.x, leftGradient);
+            float rightX = interpolate_float(right_a.projected_position.x, right_b.projected_position.x, rightGradient);
 
-    float yp2 = bc.y / (bc.z * (float)tan(fov_y / 2));
-    float xp2 = bc.x / (bc.z * (float)tan(fov_y / 2));
 
-    int nxp2 = (int)(xp2 * window_w/2 + window_h/2);
-    int nyp2 = (int)(-yp2 * window_w/2 + window_h/2);
+            // compute the z for the DepthBuffer
+            float leftZ = interpolate_float(left_a.world_view_position.z, left_b.world_view_position.z, leftGradient);
+            float rightZ = interpolate_float(right_a.world_view_position.z, right_b.world_view_position.z, rightGradient);
 
-    float yp3 = cc.y / (cc.z * (float)tan(fov_y / 2));
-    float xp3 = cc.x / (cc.z * (float)tan(fov_y / 2));
+            // pixel world position
+            vec3_t leftWorld = interpolate_vec3(left_a.world_position, left_b.world_position, leftGradient);
+            vec3_t rightWorld = interpolate_vec3(right_a.world_position, right_b.world_position, rightGradient);
 
-    int nxp3 = (int)(xp3 * window_w/2 + window_h/2);
-    int nyp3 = (int)(-yp3 * window_w/2 + window_h/2);
+            // pixel normal
+            vec3_t leftNormal = interpolate_vec3(left_a.world_normal, left_b.world_normal, leftGradient);
+            vec3_t rightNormal = interpolate_vec3(right_a.world_normal, right_b.world_normal, rightGradient);
 
-    //draw 3 lines
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp2,nyp2);
-    SDL_RenderDrawLine(renderer,nxp1,nyp1,nxp3,nyp3);
-    SDL_RenderDrawLine(renderer,nxp3,nyp3,nxp2,nyp2);
+            // // compute pixel UV
+            // vec2_t uvLeft = Interpolate(leftA.Uv, leftB.Uv, leftGradient);
+            // vec2_t uvRight = Interpolate(rightA.Uv, rightB.Uv, rightGradient);
 
-    RasterizationBoundingBox(create_vec3(nxp1,nyp1,0), create_vec3(nxp2,nyp2,0),create_vec3(nxp3,nyp3,0), renderer);
+            // // compute pixel in camera/eye space
+            // Vector3 leftWorldEye = Interpolate(leftA.WorldViewPosition, leftB.WorldViewPosition, leftGradient);
+            // Vector3 rightWorldEye = Interpolate(rightA.WorldViewPosition, rightB.WorldViewPosition, rightGradient);
+
+
+            // fill pixels managing light
+            for (int x = (int)leftX; x < (int)rightX; x++)
+            {
+                // gradient of x
+                float xGradient = (x - leftX) / (float)(rightX - leftX);
+
+                vec3_t pixelWorld = interpolate_vec3(leftWorld, rightWorld, xGradient);
+                // vec3_t pixelWorldEye = interpolate_vec3(leftWorldEye, rightWorldEye, xGradient);
+                vec3_t pixelNormal = interpolate_vec3(leftNormal, rightNormal, xGradient);
+
+                // vec3_t pixelLightDirection = (Environment.Light.Position - pixelWorld).Normalized();
+
+                // vec2_t pixelUv = Interpolate(uvLeft, uvRight, xGradient);
+
+                // int textureX = (int)Math.Abs((pixelUv.X * (Mesh.Texture.width - 1)) % (Mesh.Texture.width - 1));
+                // int textureY = (int)Math.Abs((pixelUv.Y * (Mesh.Texture.height - 1)) % (Mesh.Texture.height - 1));
+
+                // int textureIndex = (Mesh.Texture.width * textureY + textureX) * 4;
+
+                // byte r = Mesh.Texture.bitmap[textureIndex];
+                // byte g = Mesh.Texture.bitmap[textureIndex + 1];
+                // byte b = Mesh.Texture.bitmap[textureIndex + 2];
+
+                // Vector3 textureColor = new Vector3(r / 255f, g / 255f, b / 255f);
+
+                // lambert for diffuse component of Phong
+                // float lambert = Math.Max(Vector3.Dot(pixelLightDirection, pixelNormal), 0);
+                //if (lambert > 0.7f)
+                //   lambert = 1f;
+
+                //lambert = 1;
+
+                // float shininess = 0.4f;
+
+                // // reflect vector for specular Phong
+                // Vector3 reflectedLight = Reflect(-pixelLightDirection, pixelNormal);
+
+                // float specular = Math.Max(Vector3.Dot(reflectedLight, -pixelWorldEye.Normalized()), 0);
+
+                // Vector3 specularColor = new Vector3(1, 1, 1) * specular * shininess;// (float)Math.Pow(specular, shininess);
+
+                // Vector3 diffuseColor = textureColor * lambert;
+
+                // float z = Interpolate(leftZ, rightZ, xGradient);
+
+                // Vector3 ambientColor = new Vector3(0, 0f, 0);
+
+                // // compute Phong (will be in hdr)
+                // Vector3 HdrColor = diffuseColor + specularColor + ambientColor;
+                // float maxValue = Math.Max(Math.Max(Math.Max(HdrColor.X, HdrColor.Y), HdrColor.Z), 1);
+
+                // // normalize color to LDR
+                // Vector3 finalColor = HdrColor / maxValue;
+
+                // // manage outline
+                // float outline = Vector3.Dot(pixelNormal, -pixelWorldEye.Normalized());
+                // if (outline > -0.2f && outline < 0.2f)
+                // {
+                //     finalColor = new Vector3(1, 0, 0);
+                // }
+
+                // Phong
+                SDL_RenderDrawPoint(renderer,x,y);
+                // Device.PutPixel(x, y, z, finalColor);
+            }
 }
 
 void mesh_draw(mesh_t mesh,camera_t camera,SDL_Renderer* rend,float window_w,float window_h)
@@ -208,13 +316,13 @@ void mesh_draw(mesh_t mesh,camera_t camera,SDL_Renderer* rend,float window_w,flo
     fprintf(stdout,"taked first triangle reference\n");
     while(t)
     {
-        triangle_draw(*t,camera,rend,window_w,window_h);
-        fprintf(stdout,"rendered triangle %f/%f/%f %f/%f/%f %f/%f/%f\n",t->a.x,t->a.y,t->a.z,t->b.x,t->b.y,t->b.z,t->c.x,t->c.y,t->c.z);
+        triangle_draw(*t,camera,mesh.position,mesh.scale, rend,window_w,window_h);
+        // fprintf(stdout,"rendered triangle %f/%f/%f %f/%f/%f %f/%f/%f\n",t->a.x,t->a.y,t->a.z,t->b.x,t->b.y,t->b.z,t->c.x,t->c.y,t->c.z);
         t = t->next;
     }
 }
 
-triangle_t* create_triangle(struct doge_vec3 a,struct doge_vec3 b,struct doge_vec3 c)
+triangle_t* create_triangle(vertex_t a,vertex_t b,vertex_t c)
 {
     triangle_t* t = malloc(sizeof(triangle_t));
     if(!t) return NULL;
@@ -366,6 +474,11 @@ mesh_t* parse_obj(char* obj_path)
 
             list_t* float_for_vector = create_list();
             list_t* list_3_vec_index = create_list(); //float
+            //new list floatindex normal (3)
+            list_t* list_3_normal_index = create_list();
+            //new list floatindex uv (2)
+            list_t* list_3_uv_index = create_list();
+            
             static int added = 0;
             while((item = strsep(token, " ")))
             {
@@ -398,13 +511,25 @@ mesh_t* parse_obj(char* obj_path)
                     {
                         char** line_copy = &item;
                         // fprintf(stdout,"line copied \n");
-                        char* index = strsep(line_copy,"/");  //get first element
+                        char* index_vertex = strsep(line_copy,"/");  //get first element
                         // fprintf(stdout,"line splited and return value %s \n",index);
-                        int* n_index = malloc(sizeof(int));
-                        *n_index = (atoi(index)); //convert to integer 
+                        int* n_index_vertex = malloc(sizeof(int));
+                        *n_index_vertex = (atoi(index_vertex)); //convert to integer 
                         // fprintf(stdout,"transformed in value %d \n",*n_index);
+
+                        char* index_uv = strsep(line_copy,"/");
+                        int* n_index_uv = malloc(sizeof(int));
+                        *n_index_uv = (atoi(index_uv));
+
+
+                        char* index_normal = strsep(line_copy,"/");
+                        int* n_index_normal = malloc(sizeof(int));
+                        *n_index_normal = (atoi(index_normal));
                         
-                        list_append(list_3_vec_index,n_index); //add to list
+                        list_append(list_3_vec_index,n_index_vertex); //add to list
+                        list_append(list_3_uv_index,n_index_uv);
+                        list_append(list_3_normal_index,n_index_normal);
+                        
                     }
                 }
             }
@@ -425,7 +550,7 @@ mesh_t* parse_obj(char* obj_path)
                 int third_index = *(int*)get_item_at_index(list_3_vec_index,2)->item;
                 fprintf(stdout,"vertex 1 %d vertex 2 %d vertex 3 %d \n",first_index,second_index,third_index);
                 
-
+                
                 triangle_t* t = create_triangle(*(struct doge_vec3*)(get_item_at_index(all_points_of_mesh,first_index-1)->item),
                 *(struct doge_vec3*)(get_item_at_index(all_points_of_mesh,second_index-1)->item),
                 *(struct doge_vec3*)(get_item_at_index(all_points_of_mesh,third_index-1)->item));

@@ -3,17 +3,40 @@
 #include <SDL2/SDL.h>
 #include "doge_quat.h"
 
+
+typedef struct vertex
+{
+    struct doge_vec3 pos;
+    struct doge_vec3 normal;
+    struct doge_vec3 uv;
+    
+    // the vertex projected on the screen
+    struct doge_vec2 projected_position;
+
+        // the vertex transformed by the mesh transform
+    struct doge_vec3 world_position;
+        // WorldPosition moved to camera transform
+    struct doge_vec3  world_view_position;
+
+        // the vertex normal in world space
+    struct doge_vec3 world_normal;
+} vertex_t;
+void vertex_project2D(camera_t, vertex_t*,struct doge_vec3 , struct doge_vec3, float, float );
+
 typedef struct triangle
 {
-    struct doge_vec3 a;
-    struct doge_vec3 b;
-    struct doge_vec3 c;
+    vertex_t a;
+    vertex_t b;
+    vertex_t c;
 
     struct triangle* next;
     struct triangle* prev;
 
     void* owner;
 }triangle_t;
+// private void Scanline(int y, Vertex leftA, Vertex leftB, Vertex rightA, Vertex rightB)
+void triangle_scanline(int , vertex_t,vertex_t,vertex_t,vertex_t,SDL_Renderer*);
+
 
 typedef struct mesh
 {
@@ -30,12 +53,12 @@ typedef struct camera
     struct doge_vec3 position;
     float fov_y;
 }camera_t;
-void triangle_draw(triangle_t,camera_t, SDL_Renderer*,float ,float );
+void triangle_draw(triangle_t,camera_t,vec3_t,vec3_t, SDL_Renderer*,float ,float );
 void triangle_draw_no_owner(triangle_t,camera_t, SDL_Renderer*,float ,float );
 
 void mesh_draw(mesh_t,camera_t,SDL_Renderer*,float,float);
 
-triangle_t* create_triangle(struct doge_vec3 ,struct doge_vec3 ,struct doge_vec3 );
+triangle_t* create_triangle(vertex_t,vertex_t ,vertex_t );
 struct doge_vec3 create_vec3(float,float,float);
 
 void mesh_add_triangle(mesh_t*,triangle_t*);

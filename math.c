@@ -44,6 +44,25 @@ int normalize_vec2(struct doge_vec2* a)
     a->y = a->y / a_len;
     return 0;
 }
+struct doge_vec2 create_vec2(float x,float y)
+{
+    struct doge_vec2 v;
+    v.x = x;
+    v.y = y;
+    return v;
+}
+struct doge_vec2 multiply_vec2(struct doge_vec2 v, float n)
+{
+    struct doge_vec2 new_v;
+    new_v.x = v.x*n;
+    new_v.y = v.y*n;
+    return new_v;    
+}
+
+struct doge_vec2 interpolate_vec2(struct doge_vec2 a,struct doge_vec2 b, float gradient)
+{
+    return sum_vec2(a,multiply_vec2(sub_vec2(b,a),gradient));
+}
 
 
 
@@ -104,6 +123,33 @@ struct doge_vec3 multiply_vec3(struct doge_vec3 v,float n)
 float dot_vec3(struct doge_vec3 v1, struct doge_vec3 v2)
 {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+struct doge_vec3 normalized_vec3(struct doge_vec3 v)
+{
+    float len = slow_len_vec3(v);
+    struct doge_vec3 new_v;
+    new_v.x = v.x/len;
+    new_v.y = v.y/len;
+    new_v.z = v.z/len;
+    
+}
+struct doge_vec3 Reflect(struct doge_vec3 v1, struct doge_vec3 v2)
+{
+    float dot = dot_vec3(v1,v2);
+    return sub_vec3(v1,multiply_vec3(v2,2*dot)); 
+    // return v - 2f * Vector3.Dot(v, n) * n;
+}
+struct doge_vec3 interpolate_vec3(struct doge_vec3 a,struct doge_vec3 b, float gradient)
+{
+    return sum_vec3(a,multiply_vec3(sub_vec3(b,a),gradient));
+}
+
+
+//float
+float interpolate_float(float a,float b,float gradient)
+{
+    return a + (b - a) * gradient;
 }
 
 
