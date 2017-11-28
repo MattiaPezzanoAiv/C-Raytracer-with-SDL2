@@ -49,7 +49,7 @@ int main(int args_count, char* args[])
     (*fuck).position = create_vec3(0,0,0);
     (*fuck).rotation = doge_quat_create(0,0,0,1.0);
     
-    
+    //
 
     SDL_Event game_event;
     int quit = 0;
