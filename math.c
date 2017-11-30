@@ -132,9 +132,9 @@ struct doge_vec3 normalized_vec3(struct doge_vec3 v)
     new_v.x = v.x/len;
     new_v.y = v.y/len;
     new_v.z = v.z/len;
-    
+    return new_v;
 }
-struct doge_vec3 Reflect(struct doge_vec3 v1, struct doge_vec3 v2)
+struct doge_vec3 reflect_vec3(struct doge_vec3 v1, struct doge_vec3 v2)
 {
     float dot = dot_vec3(v1,v2);
     return sub_vec3(v1,multiply_vec3(v2,2*dot)); 
@@ -152,4 +152,12 @@ float interpolate_float(float a,float b,float gradient)
     return a + (b - a) * gradient;
 }
 
+vec3_t divide_vec3(vec3_t v,float n)
+{
+    vec3_t new_v;
+    new_v.x = v.x/n;
+    new_v.y = v.y/n;
+    new_v.z = v.z/n;
+    return new_v;    
+}
 

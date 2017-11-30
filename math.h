@@ -42,6 +42,7 @@ struct doge_vec2 multiply_vec2(struct doge_vec2, float );
 struct doge_vec3 sum_vec3(struct doge_vec3, struct doge_vec3);
 struct doge_vec3 sub_vec3(struct doge_vec3, struct doge_vec3);
 struct doge_vec3 scale_vec3(struct doge_vec3, struct doge_vec3);
+vec3_t divide_vec3(vec3_t,float);
 float slow_len_vec3(struct  doge_vec3);
 float fast_len_vec3(struct doge_vec3);
 float distance_vec3(struct doge_vec3, struct doge_vec3);
