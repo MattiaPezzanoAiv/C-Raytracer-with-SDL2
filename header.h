@@ -137,4 +137,7 @@ vertex_t obj_parse_vertex(char*);
 triangle_t obj_parse_line_triangle(char*);
 
 //parse an entire line checking line header (v, vn, vt, f)
-void obj_parse_line(char*, obj_parser_context_t*)
+void obj_parse_line(char*, obj_parser_context_t*);
+
+//get file path and parse obj format file
+mesh_t* obj_parse(char*); 
