@@ -101,11 +101,40 @@ void manage_scale(mesh_t*, SDL_Event*);
 void manage_position(mesh_t*,SDL_Event*);
 void rotate_around(struct doge_vec3 , mesh_t*,float ,float);
 
-float sign(struct doge_vec3,struct doge_vec3,struct doge_vec3);
-void RasterizationBoundingBox(struct doge_vec3,struct doge_vec3,struct doge_vec3, SDL_Renderer*);
-int PointInTriangle(struct doge_vec3,struct doge_vec3,struct doge_vec3,struct doge_vec3);
-
-
 void init_depth_buffer(world_t*);
 //take new z and modify the current. return 0 if you can draw pixel
 int check_depth_buffer(world_t*,float,float,float,float);
+
+
+typedef struct obj_parser_context
+{
+    int counter_v;
+    int counter_vn;
+    int counter_vt;
+    int counter_f; //numbers of triangle
+
+    list_t* list_v;
+    list_t* list_vn;
+    list_t* list_vt;
+    list_t* list_f; 
+} obj_parser_context_t;
+obj_parser_context_t obj_parser_init();
+void obj_parser_destroy(); //free memory
+
+//return an int parse from string
+int obj_parse_int(char*); 
+
+//parse a line in to vec3 separated from space
+vec3_t obj_parse_line_vec3(char*);
+
+//parse a line in to a vec2 (uv) separated from space
+vec2_t obj_parse_line_uv(char*);
+
+//parse a string separated from / returning a vertex
+vertex_t obj_parse_vertex(char*);
+
+//parse line returning a new triangle
+triangle_t obj_parse_line_triangle(char*);
+
+//parse an entire line checking line header (v, vn, vt, f)
+void obj_parse_line(char*, obj_parser_context_t*)
