@@ -37,37 +37,21 @@ typedef struct triangle
     vertex_t b;
     vertex_t c;
 
-    struct triangle* next;
-    struct triangle* prev;
-
     void* owner;
 }triangle_t;
 // private void Scanline(int y, Vertex leftA, Vertex leftB, Vertex rightA, Vertex rightB)
 void triangle_scanline(world_t*,int , vertex_t,vertex_t,vertex_t,vertex_t,SDL_Renderer*);
 
 
-typedef struct mesh
-{
-    triangle_t* head;
-    triangle_t* tail;
-
-    struct doge_vec3 scale;
-    struct doge_vec3 position;
-    doge_quat_t rotation;
-}mesh_t;
-int mesh_triangles_count(mesh_t);
 
 void triangle_draw(world_t*,triangle_t,camera_t,vec3_t,vec3_t, SDL_Renderer*,float ,float );
 void triangle_draw_no_owner(triangle_t,camera_t, SDL_Renderer*,float ,float );
 
-void mesh_draw(world_t*,mesh_t,camera_t,SDL_Renderer*,float,float);
 
 triangle_t* create_triangle(vertex_t,vertex_t ,vertex_t );
 struct doge_vec3 create_vec3(float,float,float);
 
-void mesh_add_triangle(mesh_t*,triangle_t*);
 
-mesh_t* parse_obj(char* );
 
 
 typedef struct list_item
@@ -82,6 +66,18 @@ typedef struct list
     list_item_t* head;
     list_item_t* tail;
 } list_t;
+typedef struct mesh
+{
+    list_t* triangles;
+
+    struct doge_vec3 scale;
+    struct doge_vec3 position;
+    doge_quat_t rotation;
+}mesh_t;
+void mesh_draw(world_t*,mesh_t,camera_t,SDL_Renderer*,float,float);
+void mesh_add_triangle(mesh_t*,triangle_t*);
+int mesh_triangles_count(mesh_t);
+mesh_t* parse_obj(char* ); //broken
 
 typedef struct point_light
 {
@@ -92,10 +88,11 @@ point_light_t create_light(vec3_t);
 
 //implement create list and append (like alredy implemented)
 list_t* create_list();
-list_item_t* get_item_at_index(list_t*,int);
+void* get_item_at_index(list_t*,int);
 list_item_t* create_list_item(void*); //take data
 void list_append(list_t*, void*);
 int list_len(list_t);
+void list_destory(list_t*);
 
 void manage_scale(mesh_t*, SDL_Event*);
 void manage_position(mesh_t*,SDL_Event*);
@@ -105,6 +102,8 @@ void init_depth_buffer(world_t*);
 //take new z and modify the current. return 0 if you can draw pixel
 int check_depth_buffer(world_t*,float,float,float,float);
 
+//get delimiter and return a list of char* 
+list_t* string_split(char*, const char*); //dont work
 
 typedef struct obj_parser_context
 {
@@ -118,26 +117,29 @@ typedef struct obj_parser_context
     list_t* list_vt;
     list_t* list_f; 
 } obj_parser_context_t;
-obj_parser_context_t obj_parser_init();
-void obj_parser_destroy(); //free memory
+obj_parser_context_t* obj_parser_init();
+void obj_parser_destroy(obj_parser_context_t*); //free memory
 
 //return an int parse from string
 int obj_parse_int(char*); 
 
 //parse a line in to vec3 separated from space
-vec3_t obj_parse_line_vec3(char*);
+vec3_t obj_parse_line_vertex(obj_parser_context_t*,char*);
+
+//
+vec3_t obj_parse_line_normal(obj_parser_context_t*,char*);
 
 //parse a line in to a vec2 (uv) separated from space
-vec2_t obj_parse_line_uv(char*);
+vec2_t obj_parse_line_uv(obj_parser_context_t*,char*);
 
 //parse a string separated from / returning a vertex
-vertex_t obj_parse_vertex(char*);
+vertex_t obj_parse_indexes_vertex(obj_parser_context_t*, char*);
 
 //parse line returning a new triangle
-triangle_t obj_parse_line_triangle(char*);
+triangle_t obj_parse_line_triangle(obj_parser_context_t*,mesh_t*, char*);
 
 //parse an entire line checking line header (v, vn, vt, f)
-void obj_parse_line(char*, obj_parser_context_t*);
+void obj_parse_line(obj_parser_context_t*,char*);
 
 //get file path and parse obj format file
 mesh_t* obj_parse(char*); 
