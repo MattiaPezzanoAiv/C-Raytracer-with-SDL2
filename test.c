@@ -22,14 +22,20 @@ int test_parse_line_vertex()
         return -1;
     int ret = 0;
     char* line = "1.34 0.32 5.4789";
-    vec3_t v = obj_parse_line_vertex(ctx, line);
-    if(COMPARE(v.x,1.34) || COMPARE(v.y, 0.32) || COMPARE(v.z,5.4789))
+    int v = obj_parse_line_vertex(ctx, line);
+    if(v)
+    {
+        ret = -1;
+        goto end;
+    }
+    if(COMPARE(*(*vec3_t)get_item_at_index(ctx.list_v,0).x,1.34) || COMPARE(*(*vec3_t)get_item_at_index(ctx.list_v,0).y, 0.32) || COMPARE(*(*vec3_t)get_item_at_index(ctx.list_v,0).z,5.4789))
         ret = -1;
     if(ctx->counter_v != 1)
     {
         ret = 1;
         fprintf(stdout,"counter not incremented \n");        
     }
+    end:
     return ret;
 }
 int test_parse_line_vertex_negative()

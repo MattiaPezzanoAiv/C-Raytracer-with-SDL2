@@ -513,46 +513,52 @@ void obj_parser_destroy(obj_parser_context_t* context)
 {
     free(context); 
 }
-vec3_t obj_parse_line_vertex(obj_parser_context_t* ctx, char* line) //change test and return int
+int obj_parse_line_vertex(obj_parser_context_t* ctx, char* line) //change test and return int
 {
     list_t* floats = string_split(line," "); //char list
     float x = atof((char*)get_item_at_index(floats,0));
     float y = atof((char*)get_item_at_index(floats,1));
     float z = atof((char*)get_item_at_index(floats,2));
     vec3_t* v = malloc(sizeof(vec3_t)); 
+    if(!v)
+        return -1;
     *v = vec3(x,y,z);
     ctx->counter_v++;
     list_append(ctx->list_v,v);
-    free(floats);
-    return *v;
+    list_destory(floats);
+    return 0;
 }
-vec2_t obj_parse_line_uv(obj_parser_context_t* ctx, char* line) //change test and return int
+int obj_parse_line_uv(obj_parser_context_t* ctx, char* line) //change test and return int
 {
     list_t* floats = string_split(line," ");
     float u = atof((char*)get_item_at_index(floats,0));
     float v = atof((char*)get_item_at_index(floats,1));
     vec2_t* vec = malloc(sizeof(vec2_t));
+    if(!vec)
+        return -1;
     *vec = vec2(u,v);
     ctx->counter_vt++;
     list_append(ctx->list_vt,vec);
-    free(floats);
-    return *vec;
+    list_destory(floats);
+    return 0;
 }
-vec3_t obj_parse_line_normal(obj_parser_context_t* ctx,char* line) //change test nad return int
+int obj_parse_line_normal(obj_parser_context_t* ctx,char* line) //change test nad return int
 {
     list_t* floats = string_split(line," "); //char list
     float x = atof((char*)get_item_at_index(floats,0));
     float y = atof((char*)get_item_at_index(floats,1));
     float z = atof((char*)get_item_at_index(floats,2));
     vec3_t* n = malloc(sizeof(vec3_t)); 
+    if(!n)
+        return -1;
     *n = vec3(x,y,z);
     ctx->counter_vn++;
     list_append(ctx->list_vn,n);
-    free(floats);
-    return *n;
+    list_destory(floats);
+    return 0;
 }
 
-vertex_t obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line) //change test and return int
+int obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line) //change test 
 {
     list_t* ints = string_split(line,"/"); //3 integers
     int v_index = atoi((char*)get_item_at_index(ints,0));   //vertex index
@@ -562,16 +568,19 @@ vertex_t obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line) //chang
     if(v_index-1 > ctx->counter_v || uv_index-1 > ctx->counter_vt || vn_index-1 > ctx->counter_vn)
     {
         fprintf(stdout,"index out of range during vertex parsing \n");
+        return -1;
     }
 
     vertex_t* vertex = malloc(sizeof(vertex_t));
+    if(!vertex)
+        return -1;
     vertex = memset(vertex,0,sizeof(vertex_t));
     *vertex = create_vertex(*(vec3_t*)get_item_at_index(ctx->list_v,v_index-1), *(vec3_t*)get_item_at_index(ctx->list_vn,vn_index-1),*(vec2_t*)get_item_at_index(ctx->list_vt,uv_index-1));
     list_append(ctx->list_f,vertex);
-
-    return *vertex;
+    list_destory(ints);
+    return 0;
 }
-triangle_t obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char* line) //change test and return int
+int obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char* line) //change test
 {
     list_t* v_indexes = string_split(line," ");
     vertex_t v1 = obj_parse_indexes_vertex(ctx,(char*)get_item_at_index(v_indexes,0));
@@ -579,9 +588,14 @@ triangle_t obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char*
     vertex_t v3 = obj_parse_indexes_vertex(ctx,(char*)get_item_at_index(v_indexes,2));
     
     triangle_t* t = create_triangle(v1,v2,v3);
-    if(!t) fprintf(stdout,"unable to alloc memory for triangle\n");
+    if(!t)
+    {
+        fprintf(stdout,"unable to alloc memory for triangle\n");
+        return -1;    
+    } 
     mesh_add_triangle(mesh,t);
-    return *t;
+    list_destory(v_indexes);
+    return 0;
     //NEED TO DO TEST
 }
 int obj_parse_line(obj_parser_context_t* ctx, mesh* mesh, char* line)
