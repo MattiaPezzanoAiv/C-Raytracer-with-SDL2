@@ -513,7 +513,7 @@ void obj_parser_destroy(obj_parser_context_t* context)
 {
     free(context); 
 }
-vec3_t obj_parse_line_vertex(obj_parser_context_t* ctx, char* line)
+vec3_t obj_parse_line_vertex(obj_parser_context_t* ctx, char* line) //change test and return int
 {
     list_t* floats = string_split(line," "); //char list
     float x = atof((char*)get_item_at_index(floats,0));
@@ -526,7 +526,7 @@ vec3_t obj_parse_line_vertex(obj_parser_context_t* ctx, char* line)
     free(floats);
     return *v;
 }
-vec2_t obj_parse_line_uv(obj_parser_context_t* ctx, char* line)
+vec2_t obj_parse_line_uv(obj_parser_context_t* ctx, char* line) //change test and return int
 {
     list_t* floats = string_split(line," ");
     float u = atof((char*)get_item_at_index(floats,0));
@@ -538,7 +538,7 @@ vec2_t obj_parse_line_uv(obj_parser_context_t* ctx, char* line)
     free(floats);
     return *vec;
 }
-vec3_t obj_parse_line_normal(obj_parser_context_t* ctx,char* line)
+vec3_t obj_parse_line_normal(obj_parser_context_t* ctx,char* line) //change test nad return int
 {
     list_t* floats = string_split(line," "); //char list
     float x = atof((char*)get_item_at_index(floats,0));
@@ -552,7 +552,7 @@ vec3_t obj_parse_line_normal(obj_parser_context_t* ctx,char* line)
     return *n;
 }
 
-vertex_t obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line)
+vertex_t obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line) //change test and return int
 {
     list_t* ints = string_split(line,"/"); //3 integers
     int v_index = atoi((char*)get_item_at_index(ints,0));   //vertex index
@@ -571,7 +571,7 @@ vertex_t obj_parse_indexes_vertex(obj_parser_context_t* ctx, char* line)
 
     return *vertex;
 }
-triangle_t obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char* line)
+triangle_t obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char* line) //change test and return int
 {
     list_t* v_indexes = string_split(line," ");
     vertex_t v1 = obj_parse_indexes_vertex(ctx,(char*)get_item_at_index(v_indexes,0));
@@ -583,6 +583,19 @@ triangle_t obj_parse_line_triangle(obj_parser_context_t* ctx,mesh_t* mesh, char*
     mesh_add_triangle(mesh,t);
     return *t;
     //NEED TO DO TEST
+}
+int obj_parse_line(obj_parser_context_t* ctx, mesh* mesh, char* line)
+{
+    //write test
+    //check if is v, vt, vn or f and call right methods
+}
+int obj_parse_from_file(obj_parser_context_t* ctx, mesh* mesh, char* line) //mesh must be previously allocated
+{
+    //write test <--
+    //open file
+    //read line by line a file
+    //parse line
+    //close file
 }
 
 
